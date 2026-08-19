@@ -73,6 +73,19 @@ export function normalizeStudent(student, classes = []) {
   }
 }
 
+/**
+ * Cari data orang tua berdasarkan relasi orang_tua_id dari siswa.
+ * Mengembalikan { id, nama_ortu, email } atau null jika tidak ditemukan.
+ *
+ * @param {object} student  - Objek siswa dari backend (dengan orang_tua_id)
+ * @param {Array}  parents  - Array data orang tua dari /api/orang_tua
+ * @returns {{ id: number, nama_ortu: string, email: string } | null}
+ */
+export function findParentByStudent(student, parents = []) {
+  if (!student?.orang_tua_id) return null
+  return parents.find((parent) => parent.id === student.orang_tua_id) ?? null
+}
+
 export function formatTime(value) {
   return value ? value.slice(0, 5) : '-'
 }

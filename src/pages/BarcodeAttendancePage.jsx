@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
-import { Camera, CheckCircle2, Keyboard, ScanLine, XCircle } from 'lucide-react'
-import { extractStudentIdentifier, getStudents, normalizeStudentIdentifier, resolveStudentIdentifier, submitAttendance } from '../api'
+import { Camera, CheckCircle2, Keyboard, Mail, ScanLine, XCircle } from 'lucide-react'
+import { extractStudentIdentifier, findParentByStudent, getParents, getStudents, normalizeStudentIdentifier, resolveStudentIdentifier, submitAttendance } from '../api'
+import { sendAttendanceNotification } from '../emailService'
 
 export default function BarcodeAttendancePage() {
   const videoRef = useRef(null)
@@ -9,16 +10,21 @@ export default function BarcodeAttendancePage() {
   const [nis, setNis] = useState('')
   const [type, setType] = useState('datang')
   const [students, setStudents] = useState([])
+  const [parents, setParents] = useState([])
   const [scannerOpen, setScannerOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const [emailStatus, setEmailStatus] = useState(null) // null | 'sending' | 'sent' | 'failed'
   const [studentsLoading, setStudentsLoading] = useState(true)
   const [rawScan, setRawScan] = useState('')
   const [resolvingScan, setResolvingScan] = useState(false)
 
   useEffect(() => {
-    getStudents()
-      .then(setStudents)
+    Promise.all([getStudents(), getParents()])
+      .then(([studentData, parentData]) => {
+        setStudents(studentData)
+        setParents(parentData)
+      })
       .catch(() => setMessage({ type: 'error', text: 'Data siswa gagal dimuat dari backend.' }))
       .finally(() => setStudentsLoading(false))
     return () => scannerControlsRef.current?.stop()
@@ -94,6 +100,7 @@ export default function BarcodeAttendancePage() {
 
     setLoading(true)
     setMessage(null)
+    setEmailStatus(null)
     let identifier
     try {
       identifier = await resolveStudentIdentifier(nis, students)
@@ -115,10 +122,27 @@ export default function BarcodeAttendancePage() {
       setLoading(false)
       return
     }
+
     try {
       const result = await submitAttendance(student.nis, type)
       setMessage({ type: 'success', text: `${result.pesan} ${student.nama_siswa}.` })
       setNis('')
+
+      // Kirim notifikasi email ke orang tua — non-blocking, tidak gagalkan UI
+      const parent = findParentByStudent(student, parents)
+      if (parent?.email) {
+        setEmailStatus('sending')
+        const classData = student.kelas_id ? `Kelas ${student.kelas_id}` : '-'
+        sendAttendanceNotification({
+          studentName: student.nama_siswa,
+          className: classData,
+          parentName: parent.nama_ortu,
+          parentEmail: parent.email,
+          attendanceType: type,
+        })
+          .then(() => setEmailStatus('sent'))
+          .catch(() => setEmailStatus('failed'))
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -164,7 +188,29 @@ export default function BarcodeAttendancePage() {
           </form>
 
           {rawScan && <p className="mt-4 text-center text-xs text-slate-400">Hasil scan terakhir: {rawScan}</p>}
-          {message && <div className={`mt-5 flex items-start gap-3 rounded-2xl p-4 text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{message.type === 'success' ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0" />}{message.text}</div>}
+
+          {message && (
+            <div className={`mt-5 rounded-2xl p-4 text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+              <div className="flex items-start gap-3">
+                {message.type === 'success' ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0" />}
+                <span>{message.text}</span>
+              </div>
+
+              {/* Status pengiriman email notifikasi */}
+              {message.type === 'success' && emailStatus && (
+                <div className={`mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium ${
+                  emailStatus === 'sending' ? 'bg-blue-50 text-blue-600' :
+                  emailStatus === 'sent'    ? 'bg-emerald-100 text-emerald-700' :
+                                             'bg-amber-50 text-amber-600'
+                }`}>
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                  {emailStatus === 'sending' && 'Mengirim notifikasi email ke orang tua...'}
+                  {emailStatus === 'sent'    && 'Email notifikasi berhasil dikirim ke orang tua ✓'}
+                  {emailStatus === 'failed'  && 'Email tidak terkirim — periksa konfigurasi EmailJS di .env'}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </main>
     </div>
