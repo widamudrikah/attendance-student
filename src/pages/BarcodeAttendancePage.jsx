@@ -94,8 +94,8 @@ export default function BarcodeAttendancePage() {
             scannerControlsRef.current?.stop()
           },
         )
-      } catch {
-        setMessage({ type: 'error', text: 'Kamera tidak dapat diakses. Masukkan NIS secara manual.' })
+      } catch (error) {
+        setMessage({ type: 'error', text: `Kamera tidak dapat diakses: ${error?.message || error}. Masukkan NIS secara manual.` })
       }
     }
     startScanner()
