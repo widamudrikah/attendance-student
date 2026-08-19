@@ -55,7 +55,7 @@ export async function getTeacherAttendances() {
 }
 
 export async function submitAttendance(nis, tipeAbsen, statusKehadiran = null) {
-  const body = { nis: String(nis), tipe_absen: tipeAbsen }
+  const body = { nis: Number(nis), tipe_absen: tipeAbsen }
   if (statusKehadiran) body.status_kehadiran = statusKehadiran
   return request('/api/absen', {
     method: 'POST',
