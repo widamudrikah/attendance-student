@@ -40,12 +40,13 @@ jobs:
       run: npm ci
 
     - name: Build Web App
+      env:
+        VITE_EMAILJS_SERVICE_ID: service_fw1s0xu
+        VITE_EMAILJS_TEMPLATE_ID: template_4yudzrm
+        VITE_EMAILJS_PUBLIC_KEY: ym1tdjyNOn5ufaomC
       run: npm run build
 
-    - name: Create Out Directory
-      run: mkdir -p out
-
-    - name: Sync Capacitor
+    - name: Sync Capacitor Android
       run: npx cap sync android
 
     - name: Build Android APK (Debug)
