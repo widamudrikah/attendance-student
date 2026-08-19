@@ -1,0 +1,54 @@
+name: iOS Build
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build:
+    # Build iOS membutuhkan sistem operasi macOS (runner GitHub Actions)
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 22
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Build Web App
+      run: npm run build
+
+    - name: Create Out Directory
+      run: mkdir -p out
+
+    - name: Sync Capacitor iOS
+      run: npx cap sync ios
+
+    # Catatan: Build di bawah ini adalah build 'unsigned' (tanpa sertifikat Apple Developer).
+    # File ini tidak bisa langsung diinstal ke iPhone nyata (hanya bisa jalan di Simulator).
+    # Untuk mendapatkan .ipa asli, Anda harus mengkonfigurasi Provisioning Profile & Certificate
+    # di rahasia (Secrets) repositori GitHub Anda.
+    - name: Build iOS App (Unsigned Archive)
+      run: |
+        xcodebuild archive \
+          -workspace ios/App/App.xcworkspace \
+          -scheme App \
+          -configuration Release \
+          -archivePath $PWD/build/App.xcarchive \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Upload iOS Archive Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-app-archive
+        path: build/App.xcarchive
