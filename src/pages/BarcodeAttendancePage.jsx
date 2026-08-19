@@ -62,7 +62,7 @@ export default function BarcodeAttendancePage() {
     const startScanner = async () => {
       try {
         if (Capacitor.isNativePlatform()) {
-          const permission = await CapCamera.requestPermissions()
+          const permission = await CapCamera.requestPermissions({ permissions: ['camera'] })
           if (permission.camera !== 'granted' && permission.camera !== 'limited') {
             throw new Error('Izin kamera ditolak oleh sistem Android.')
           }
