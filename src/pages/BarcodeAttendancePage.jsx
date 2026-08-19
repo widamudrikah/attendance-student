@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { Camera, CheckCircle2, Keyboard, Mail, ScanLine, XCircle } from 'lucide-react'
-import { extractStudentIdentifier, findParentByStudent, getParents, getStudents, normalizeStudentIdentifier, resolveStudentIdentifier, submitAttendance } from '../api'
+import { extractStudentIdentifier, findParentByStudent, getClasses, getParents, getStudents, normalizeStudentIdentifier, resolveStudentIdentifier, submitAttendance } from '../api'
 import { sendAttendanceNotification } from '../emailService'
 
 export default function BarcodeAttendancePage() {
@@ -11,6 +11,7 @@ export default function BarcodeAttendancePage() {
   const [type, setType] = useState('datang')
   const [students, setStudents] = useState([])
   const [parents, setParents] = useState([])
+  const [classes, setClasses] = useState([])
   const [scannerOpen, setScannerOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
@@ -20,10 +21,11 @@ export default function BarcodeAttendancePage() {
   const [resolvingScan, setResolvingScan] = useState(false)
 
   useEffect(() => {
-    Promise.all([getStudents(), getParents()])
-      .then(([studentData, parentData]) => {
+    Promise.all([getStudents(), getParents(), getClasses()])
+      .then(([studentData, parentData, classData]) => {
         setStudents(studentData)
         setParents(parentData)
+        setClasses(classData)
       })
       .catch(() => setMessage({ type: 'error', text: 'Data siswa gagal dimuat dari backend.' }))
       .finally(() => setStudentsLoading(false))
@@ -132,7 +134,7 @@ export default function BarcodeAttendancePage() {
       const parent = findParentByStudent(student, parents)
       if (parent?.email) {
         setEmailStatus('sending')
-        const classData = student.kelas_id ? `Kelas ${student.kelas_id}` : '-'
+        const classData = classes.find((c) => c.id === student.kelas_id)?.nama_kelas || `Kelas ${student.kelas_id}`
         sendAttendanceNotification({
           studentName: student.nama_siswa,
           className: classData,
