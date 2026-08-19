@@ -13,16 +13,17 @@ export default function StudentsPage() {
 
   const markAttendance = async (student, status) => {
     setActionMessage('')
-    if (status !== 'hadir') {
-      setActionMessage(`Status ${status} belum dapat disimpan karena backend belum memiliki endpoint input ketidakhadiran.`)
-      return
-    }
-
     setSavingId(student.id)
     try {
-      await submitAttendance(student.nis, 'datang')
-      setStudentList((current) => current.map((item) => item.id === student.id ? { ...item, status: 'hadir' } : item))
-      setActionMessage(`Absensi datang ${student.name} berhasil dicatat.`)
+      // Semua status dikirim ke endpoint yang sama dengan status_kehadiran
+      // hadir → tipe_absen: 'datang', tanpa status_kehadiran
+      // izin/sakit/alpa → tipe_absen: 'datang', status_kehadiran: <status>
+      const statusKehadiran = status !== 'hadir' ? status : null
+      await submitAttendance(student.nis, 'datang', statusKehadiran)
+      setStudentList((current) =>
+        current.map((item) => item.id === student.id ? { ...item, status } : item)
+      )
+      setActionMessage(`Absensi ${status} untuk ${student.name} berhasil dicatat.`)
     } catch (error) {
       setActionMessage(error.message)
     } finally {

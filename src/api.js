@@ -54,11 +54,70 @@ export async function getTeacherAttendances() {
   return payload.data || []
 }
 
-export async function submitAttendance(nis, tipeAbsen) {
+export async function submitAttendance(nis, tipeAbsen, statusKehadiran = null) {
+  const body = { nis: String(nis), tipe_absen: tipeAbsen }
+  if (statusKehadiran) body.status_kehadiran = statusKehadiran
   return request('/api/absen', {
     method: 'POST',
-    body: JSON.stringify({ nis: String(nis), tipe_absen: tipeAbsen }),
+    body: JSON.stringify(body),
   })
+}
+
+// ─── CRUD Siswa ────────────────────────────────────────────────────────────────
+export async function createStudent({ nis, nama_siswa, kelas_id, orang_tua_id }) {
+  return request('/api/siswa', {
+    method: 'POST',
+    body: JSON.stringify({ nis: String(nis), nama_siswa, kelas_id: Number(kelas_id), orang_tua_id: Number(orang_tua_id) }),
+  })
+}
+
+export async function updateStudent(id, { nis, nama_siswa, kelas_id, orang_tua_id }) {
+  return request(`/api/siswa/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ nis: String(nis), nama_siswa, kelas_id: Number(kelas_id), orang_tua_id: Number(orang_tua_id) }),
+  })
+}
+
+export async function deleteStudent(id) {
+  return request(`/api/siswa/${id}`, { method: 'DELETE' })
+}
+
+// ─── CRUD Guru ─────────────────────────────────────────────────────────────────
+export async function createTeacher({ nama_guru, nip, user_id }) {
+  return request('/api/guru', {
+    method: 'POST',
+    body: JSON.stringify({ nama_guru, nip, user_id: Number(user_id) }),
+  })
+}
+
+export async function updateTeacher(id, { nama_guru, nip }) {
+  return request(`/api/guru/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ nama_guru, nip }),
+  })
+}
+
+export async function deleteTeacher(id) {
+  return request(`/api/guru/${id}`, { method: 'DELETE' })
+}
+
+// ─── CRUD Orang Tua ────────────────────────────────────────────────────────────
+export async function createParent({ nama_ortu, email, user_id }) {
+  return request('/api/orang_tua', {
+    method: 'POST',
+    body: JSON.stringify({ nama_ortu, email, user_id: Number(user_id) }),
+  })
+}
+
+export async function updateParent(id, { nama_ortu, email }) {
+  return request(`/api/orang_tua/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ nama_ortu, email }),
+  })
+}
+
+export async function deleteParent(id) {
+  return request(`/api/orang_tua/${id}`, { method: 'DELETE' })
 }
 
 export function normalizeStudent(student, classes = []) {
