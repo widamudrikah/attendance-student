@@ -3,6 +3,8 @@ import { BrowserMultiFormatReader } from '@zxing/browser'
 import { Camera, CheckCircle2, Keyboard, Mail, ScanLine, XCircle } from 'lucide-react'
 import { extractStudentIdentifier, findParentByStudent, getClasses, getParents, getStudents, normalizeStudentIdentifier, resolveStudentIdentifier, submitAttendance } from '../api'
 import { sendAttendanceNotification } from '../emailService'
+import { Capacitor } from '@capacitor/core'
+import { Camera as CapCamera } from '@capacitor/camera'
 
 export default function BarcodeAttendancePage() {
   const videoRef = useRef(null)
@@ -59,6 +61,13 @@ export default function BarcodeAttendancePage() {
 
     const startScanner = async () => {
       try {
+        if (Capacitor.isNativePlatform()) {
+          const permission = await CapCamera.requestPermissions()
+          if (permission.camera !== 'granted' && permission.camera !== 'limited') {
+            throw new Error('Izin kamera ditolak oleh sistem Android.')
+          }
+        }
+        
         const reader = new BrowserMultiFormatReader()
         const devices = await BrowserMultiFormatReader.listVideoInputDevices()
         const preferredDevice = devices.find((device) => /back|rear|environment/i.test(device.label)) || devices[0]
